@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>MATRIX: Infiltração no Núcleo</title>
+<style>
+/* ====== ESTRUTURA / VISUAL ====== */
+body{
+  margin:0; font-family:Arial, sans-serif;
+  background:#0b0f14; color:#e6f1ff;
+}
+#game{max-width:900px;margin:auto;padding:20px}
+h1{color:#00ffc3}
+button{padding:10px;margin:5px;background:#00ffc3;border:none;cursor:pointer}
+.panel{background:#121a22;padding:15px;border-radius:8px;margin-top:10px}
+.hidden{display:none}
+.matrix{display:inline-block;margin:10px}
+.cell{width:40px;height:40px;text-align:center}
+input.cell{background:#0b0f14;color:#fff;border:1px solid #555}
+
+/* Responsivo */
+@media(max-width:600px){
+  .cell{width:30px;height:30px}
+}
+</style>
+</head>
+<body>
+<div id="game">
+
+<!-- ====== TELA INICIAL ====== -->
+<div id="menu">
+<h1>MATRIX: Infiltração no Núcleo</h1>
+<p>Invada o sistema resolvendo desafios com matrizes.</p>
+<button onclick="startGame()">Iniciar</button>
+<button onclick="showInstructions()">Instruções</button>
+</div>
+
+<!-- ====== INSTRUÇÕES ====== -->
+<div id="instructions" class="hidden panel">
+<h2>Instruções</h2>
+<p>Você enfrentará 3 níveis:</p>
+<ul>
+<li>Nível 1: Identificar dimensões</li>
+<li>Nível 2: Soma/Subtração</li>
+<li>Nível 3: Multiplicação e Determinantes</li>
+</ul>
+<p>Ganhe pontos por acertos rápidos. Erros reduzem energia.</p>
+<button onclick="backMenu()">Voltar</button>
+</div>
+
+<!-- ====== JOGO ====== -->
+<div id="play" class="hidden">
+<h2 id="levelTitle"></h2>
+<div class="panel" id="challenge"></div>
+<div id="inputArea"></div>
+<button onclick="submitAnswer()">Enviar</button>
+<div id="feedback"></div>
+<div>Pontuação: <span id="score">0</span></div>
+<div>Energia: <span id="hp">3</span></div>
+</div>
+
+</div>
+
+<script>
+/* ====== ESTADO GLOBAL ====== */
+let level=1, score=0, hp=3, correctAnswer=null;
+
+/* ====== INICIALIZAÇÃO ====== */
+function startGame(){
+  document.getElementById("menu").classList.add("hidden");
+  document.getElementById("play").classList.remove("hidden");
+  loadLevel();
+}
+function showInstructions(){
+  document.getElementById("menu").classList.add("hidden");
+  document.getElementById("instructions").classList.remove("hidden");
+}
+function backMenu(){
+  document.getElementById("instructions").classList.add("hidden");
+  document.getElementById("menu").classList.remove("hidden");
+}
+
+/* ====== GERADOR DE MATRIZ ====== */
+function genMatrix(r,c){
+  let m=[];
+  for(let i=0;i<r;i++){
+    m[i]=[];
+    for(let j=0;j<c;j++){
+      m[i][j]=Math.floor(Math.random()*9)+1;
+    }
+  }
+  return m;
+}
+
+/* ====== RENDER MATRIZ ====== */
+function renderMatrix(m){
+  let html='<div class="matrix">';
+  m.forEach(row=>{
+    html+="<div>";
+    row.forEach(v=>{
+      html+=`<span class="cell">${v}</span>`;
+    });
+    html+="</div>";
+  });
+  html+="</div>";
+  return html;
+}
+
+/* ====== CARREGAR NÍVEIS ====== */
+function loadLevel(){
+  document.getElementById("feedback").innerHTML="";
+  document.getElementById("inputArea").innerHTML="";
+  
+  if(level===1){
+    document.getElementById("levelTitle").innerText="Nível 1 — Dimensões";
+    let r=Math.floor(Math.random()*3)+2;
+    let c=Math.floor(Math.random()*3)+2;
+    let m=genMatrix(r,c);
+    correctAnswer=`${r}x${c}`;
+    document.getElementById("challenge").innerHTML=
+      "Identifique a dimensão da matriz:"+renderMatrix(m);
+    document.getElementById("inputArea").innerHTML=
+      `<input id="answer" placeholder="ex: 2x3">`;
+  }
+  
+  if(level===2){
+    document.getElementById("levelTitle").innerText="Nível 2 — Soma";
+    let m1=genMatrix(2,2);
+    let m2=genMatrix(2,2);
+    correctAnswer = [
+      [m1[0][0]+m2[0][0], m1[0][1]+m2[0][1]],
+      [m1[1][0]+m2[1][0], m1[1][1]+m2[1][1]]
+    ];
+    document.getElementById("challenge").innerHTML=
+      renderMatrix(m1)+" + "+renderMatrix(m2);
+    createMatrixInput(2,2);
+  }
+
+  if(level===3){
+    document.getElementById("levelTitle").innerText="Nível 3 — Produto/Determinante";
+    let m1=genMatrix(2,2);
+    let m2=genMatrix(2,2);
+    correctAnswer = [
+      [
+        m1[0][0]*m2[0][0]+m1[0][1]*m2[1][0],
+        m1[0][0]*m2[0][1]+m1[0][1]*m2[1][1]
+      ],
+      [
+        m1[1][0]*m2[0][0]+m1[1][1]*m2[1][0],
+        m1[1][0]*m2[0][1]+m1[1][1]*m2[1][1]
+      ]
+    ];
+    let det = m1[0][0]*m1[1][1]-m1[0][1]*m1[1][0];
+    document.getElementById("challenge").innerHTML=
+      "Multiplique:<br>"+renderMatrix(m1)+" x "+renderMatrix(m2)+
+      `<br>Det(A) = ?`;
+    createMatrixInput(2,2);
+    document.getElementById("inputArea").innerHTML+=
+      `<br>Determinante: <input id="det">`;
+    correctAnswer.det = det;
+  }
+}
+
+/* ====== INPUT MATRIZ ====== */
+function createMatrixInput(r,c){
+  let html="";
+  for(let i=0;i<r;i++){
+    for(let j=0;j<c;j++){
+      html+=`<input class="cell" id="c${i}${j}">`;
+    }
+    html+="<br>";
+  }
+  document.getElementById("inputArea").innerHTML=html;
+}
+
+/* ====== VALIDAÇÃO ====== */
+function submitAnswer(){
+  let ok=false;
+  let fb="";
+  
+  if(level===1){
+    let val=document.getElementById("answer").value;
+    ok=(val===correctAnswer);
+    fb= ok ? "Correto: linhas x colunas." :
+      "Erro: conte linhas e colunas corretamente.";
+  }
+
+  if(level===2){
+    ok=true;
+    for(let i=0;i<2;i++){
+      for(let j=0;j<2;j++){
+        let v=parseInt(document.getElementById(`c${i}${j}`).value);
+        if(v!==correctAnswer[i][j]) ok=false;
+      }
+    }
+    fb= ok ? "Correto: soma elemento a elemento." :
+      "Erro: some posições correspondentes.";
+  }
+
+  if(level===3){
+    ok=true;
+    for(let i=0;i<2;i++){
+      for(let j=0;j<2;j++){
+        let v=parseInt(document.getElementById(`c${i}${j}`).value);
+        if(v!==correctAnswer[i][j]) ok=false;
+      }
+    }
+    let det=parseInt(document.getElementById("det").value);
+    if(det!==correctAnswer.det) ok=false;
+    fb= ok ? "Correto: produto linha×coluna e det=ad−bc." :
+      "Erro: revise multiplicação e determinante.";
+  }
+
+  if(ok){
+    score+=10;
+    level++;
+  }else{
+    hp--;
+  }
+
+  document.getElementById("score").innerText=score;
+  document.getElementById("hp").innerText=hp;
+  document.getElementById("feedback").innerText=fb;
+
+  if(hp<=0){
+    alert("Sistema detectou falha. Reiniciando...");
+    location.reload();
+  }
+
+  if(level>3){
+    document.getElementById("play").innerHTML=
+      "<h2>Missão concluída</h2><p>Pontuação final: "+score+"</p>";
+  }else{
+    setTimeout(loadLevel,1500);
+  }
+}
+</script>
+</body>
+</html>
